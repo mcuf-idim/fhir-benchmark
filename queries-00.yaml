@@ -1,0 +1,35 @@
+- name: "Location Query"
+  query_code: "/Encounter?location={id}&date=ge2020-01-01&date=le2020-12-31&_include=Encounter:patient"
+  id_pool_file: "data/Location.ids"
+
+- name: "Practitioner Workload Query"
+  query_code: "/Encounter?participant=Practitioner/{id}&date=ge2015-01-01&date=le2024-03-31&_include=Encounter:participant"
+  id_pool_file: "data/Practitioner.ids"
+
+- name: "Condition Query"
+  query_code: "/Condition?patient={id}&_include=Condition:patient&_include=Condition:encounter"
+  id_pool_file: "data/Patient.ids"
+
+- name: "Observation by Patient and Encounter"
+  query_code: "/Observation?subject=Patient/{id}&_include=Observation:encounter"
+  id_pool_file: "data/Patient.ids"
+
+- name: "Observation by Encounter, including Patient and Condition"
+  query_code: "/Observation?encounter=Encounter/{id}&_include=Observation:patient"
+  id_pool_file: "data/Encounter.ids"
+
+- name: "Procedure by Patient, including Encounter and Performer"
+  query_code: "/Procedure?subject=Patient/{id}&_include=Procedure:encounter&_include=Procedure:performer"
+  id_pool_file: "data/Patient.ids"
+
+- name: "Condition by Patient, including Asserter"
+  query_code: "/Condition?subject=Patient/{id}&_include=Condition:asserter"
+  id_pool_file: "data/Patient.ids"
+
+- name: "Immunization by Patient and Date, including Performer and Location"
+  query_code: "/Immunization?patient=Patient/{id}&date=ge2020-01-01&_include=Immunization:performer&_include=Immunization:location"
+  id_pool_file: "data/Patient.ids"
+
+- name: "Immunization by Patient and Status, including Vaccine Code and Manufacturer"
+  query_code: "/Immunization?patient=Patient/{id}&status=completed&_include=Immunization:vaccine-code&_include=Immunization:manufacturer"
+  id_pool_file: "data/Patient.ids"

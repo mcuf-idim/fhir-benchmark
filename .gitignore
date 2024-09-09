@@ -1,0 +1,9 @@
+/data
+/go.mod
+/go.sum
+/invalid-data
+/push-data
+/push-invalid-data
+/query-output/
+/query-runner
+fhir-benchmark*

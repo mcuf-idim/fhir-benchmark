@@ -1,0 +1,8 @@
+/.git
+/.gitignore
+/Containerilfe
+/go.mod
+/go.sum
+/push-data
+/query-runner
+.DS_Store
