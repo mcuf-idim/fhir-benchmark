@@ -195,6 +195,27 @@ podman exec fhir-benchmark push-invalid-data \
 -files=invalid-data/Patient.ndjson,invalid-data/Encounter.ndjson,invalid-data/Condition.ndjson,invalid-data/Observation.ndjson
 ```
 
+### Optional: Add a Project ID to the FHIR Resources
+Some FHIR servers allow resources to be sorted into projects using a project ID. If desired, you can add a project ID to the test resources using the helper script `sh/set-project-id.sh`. This script sets the JSON key `meta.project` to the specified value.
+
+Usage:
+```bash
+sh/set-project-id.sh \
+  -input_dir=["input directory"] \
+  -output_dir=["output directory"] \
+  -project_id=["project ID to be added"] \
+  [-threads=["max number of source files processed concurrently"]]
+```
+
+Example:
+```bash
+sh/set-project-id.sh \
+  -input_dir=data \
+  -output_dir=custom_data \
+  -project_id=a826387c-2fca-4be7-a7f3-c26b198d73b0 \
+  -threads=16
+```
+
 ### Monitoring the benchmark
 
 Run `htop` to monitor CPU load and memory usage during the benchmark:
