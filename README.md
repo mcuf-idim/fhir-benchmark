@@ -1,7 +1,5 @@
 # FHIR Server Benchmark Tool
 
-[TOC]
-
 ## About
 
 FHIR (Fast Healthcare Interoperability Resources) is a standard for healthcare data exchange. This tool benchmarks the performance of FHIR servers. It tests 3 aspects:
