@@ -37,7 +37,7 @@ In this example, we will use [Podman](https://podman.io/) to manage the containe
 ### Step 1. Clone the repository, get the test data, build the container
 
 ```bash
-clone [git@ukl-git.ukl.uni-freiburg.de:translationszentrum/fhir-benchmark.git]
+git clone https://github.com/mcuf-idim/fhir-benchmark.git
 cd fhir-benchmark
 # Download the test data
 make install
@@ -68,7 +68,13 @@ podman run \
 --name=blaze-fhir \
 docker.io/samply/blaze
 # Add the benchmark container to the pod
-podman run --cpus=4 --memory=4G --pod=fhir-benchmark-pod -d -it --name=fhir-benchmark fhir-benchmark-img
+podman run \
+--cpus=4 \
+--memory=4G \
+--pod=fhir-benchmark-pod \
+-d -it \
+--name=fhir-benchmark \
+fhir-benchmark-img
 ```
 
 **Example 2. Running the container as a stand-alone instance**
