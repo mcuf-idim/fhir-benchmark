@@ -4,6 +4,7 @@ import (
     "encoding/json"
     "flag"
     "fmt"
+    "io"
     "io/ioutil"
     "net/http"
     "path/filepath"
@@ -88,9 +89,18 @@ func main() {
 func uploadData(bearerToken, serverURL, resourceType string, data, ids []string, threads int) (int, int) {
     var wg sync.WaitGroup
     semaphore := make(chan struct{}, threads)
-    client := &http.Client{
-        Timeout: time.Second * 30,
+
+    transport := &http.Transport{
+        MaxIdleConns:        256,
+        MaxIdleConnsPerHost: 256,
+        MaxConnsPerHost:     256,
     }
+
+    client := &http.Client{
+        Timeout:   time.Second * 30,
+        Transport: transport,
+    }
+
     count := 0
     errors := 0
 
@@ -104,9 +114,7 @@ func uploadData(bearerToken, serverURL, resourceType string, data, ids []string,
             defer wg.Done()
             semaphore <- struct{}{}
 
-            // Construct the resource URL with the ID for the PUT request
             resourceURL := fmt.Sprintf("%s/%s/%s", serverURL, resourceType, id)
-
             req, err := http.NewRequest("PUT", resourceURL, strings.NewReader(jsonStr))
             if err != nil {
                 fmt.Println("Error creating PUT request:", err)
@@ -117,7 +125,7 @@ func uploadData(bearerToken, serverURL, resourceType string, data, ids []string,
 
             req.Header.Set("Content-Type", "application/fhir+json")
             if bearerToken != "" {
-                req.Header.Set("Authorization", "Bearer " + bearerToken)
+                req.Header.Set("Authorization", "Bearer "+bearerToken)
             }
 
             response, err := client.Do(req)
@@ -128,6 +136,7 @@ func uploadData(bearerToken, serverURL, resourceType string, data, ids []string,
                 return
             }
             defer response.Body.Close()
+            io.Copy(ioutil.Discard, response.Body) // Read body to completion
 
             if response.StatusCode != http.StatusOK && response.StatusCode != http.StatusCreated {
                 fmt.Printf("Received non-successful status: %s\n", response.Status)
@@ -142,3 +151,4 @@ func uploadData(bearerToken, serverURL, resourceType string, data, ids []string,
     wg.Wait()
     return count, errors
 }
+
