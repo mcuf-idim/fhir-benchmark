@@ -144,7 +144,7 @@ Example on host machine
 podman exec fhir-benchmark push-data \
 -threads=8 \
 -server_url=http://localhost:8080/fhir \
--files=data/Patient.ndjson,data/Practitioner.ndjson,data/Location.ndjson,data/Organization.ndjson,data/Encounter.ndjson,data/Condition.ndjson,data/Observation.ndjson,data/Procedure.ndjson,data/AllergyIntolerance.ndjson,data/Immunization.ndjson,data/DiagnosticReport.ndjson,data/DocumentReference.ndjson,data/ImagingStudy.ndjson,data/MedicationRequest.ndjson,data/CarePlan.ndjson,data/CareTeam.ndjson,data/MedicationAdministration.ndjson,data/Claim.ndjson
+-files=data/Patient.ndjson,data/Practitioner.ndjson,data/Location.ndjson,data/Organization.ndjson,data/Encounter.ndjson,data/Condition.ndjson,data/Observation.ndjson,data/Procedure.ndjson,data/AllergyIntolerance.ndjson,data/Immunization.ndjson
 ```
 When uploading data, be sure to list files in correct order to preserve dependencies.
 1. Patient
