@@ -33,6 +33,7 @@ func main() {
     files := strings.Split(*filesList, ",")
     totalResources := 0
     totalErrors := 0
+    dataMap := make(map[string][]string)
     idsMap := make(map[string][]string)
 
     for _, file := range files {
@@ -44,6 +45,7 @@ func main() {
         }
 
         lines := strings.Split(string(data), "\n")
+        dataLines := make([]string, 0, len(lines))
         ids := make([]string, 0, len(lines))
         for _, line := range lines {
             if line == "" {
@@ -54,10 +56,12 @@ func main() {
                 fmt.Println("Error parsing JSON:", err)
                 continue
             }
+            dataLines = append(dataLines, line)
             ids = append(ids, resource.ID)
         }
         resourceType := filepath.Base(trimmedFile)
         resourceType = strings.Split(resourceType, ".")[0]
+        dataMap[resourceType] = dataLines
         idsMap[resourceType] = ids
     }
 
@@ -68,16 +72,10 @@ func main() {
         resourceType := filepath.Base(trimmedFile)
         resourceType = strings.Split(resourceType, ".")[0]
 
-        data, err := ioutil.ReadFile(trimmedFile)
-        if err != nil {
-            fmt.Printf("Failed to read file %s: %v\n", trimmedFile, err)
-            continue
-        }
-
-        lines := strings.Split(string(data), "\n")
+        dataLines := dataMap[resourceType]
         ids := idsMap[resourceType]
 
-        count, errors := uploadData(*bearerToken, *serverURL, resourceType, lines, ids, *threads)
+        count, errors := uploadData(*bearerToken, *serverURL, resourceType, dataLines, ids, *threads)
         totalResources += count
         totalErrors += errors
     }
@@ -101,14 +99,11 @@ func uploadData(bearerToken, serverURL, resourceType string, data, ids []string,
         Transport: transport,
     }
 
-    count := 0
-    errors := 0
+    var count int
+    var errors int
+    var mu sync.Mutex
 
     for i, jsonData := range data {
-        if jsonData == "" {
-            continue
-        }
-
         wg.Add(1)
         go func(jsonStr, id string) {
             defer wg.Done()
@@ -118,7 +113,9 @@ func uploadData(bearerToken, serverURL, resourceType string, data, ids []string,
             req, err := http.NewRequest("PUT", resourceURL, strings.NewReader(jsonStr))
             if err != nil {
                 fmt.Println("Error creating PUT request:", err)
+                mu.Lock()
                 errors++
+                mu.Unlock()
                 <-semaphore
                 return
             }
@@ -131,18 +128,23 @@ func uploadData(bearerToken, serverURL, resourceType string, data, ids []string,
             response, err := client.Do(req)
             if err != nil {
                 fmt.Println("Error sending PUT request:", err)
+                mu.Lock()
                 errors++
+                mu.Unlock()
                 <-semaphore
                 return
             }
             defer response.Body.Close()
-            io.Copy(ioutil.Discard, response.Body) // Read body to completion
-
+            io.Copy(ioutil.Discard, response.Body)
             if response.StatusCode != http.StatusOK && response.StatusCode != http.StatusCreated {
                 fmt.Printf("Received non-successful status: %s\n", response.Status)
+                mu.Lock()
                 errors++
+                mu.Unlock()
             } else {
+                mu.Lock()
                 count++
+                mu.Unlock()
             }
             <-semaphore
         }(jsonData, ids[i])
@@ -151,4 +153,3 @@ func uploadData(bearerToken, serverURL, resourceType string, data, ids []string,
     wg.Wait()
     return count, errors
 }
-
