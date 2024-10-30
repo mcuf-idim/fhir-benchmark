@@ -12,6 +12,7 @@ import (
     "strings"
     "sync"
     "time"
+
     "gopkg.in/yaml.v3"
 )
 
@@ -72,13 +73,23 @@ func main() {
         }
     }
 
-    shuffleTasks(tasks) // Shuffle the tasks before processing
+    shuffleTasks(tasks)
 
     jobs := make(chan Task, len(tasks))
     var wg sync.WaitGroup
     wg.Add(threads)
+
+    client := &http.Client{
+        Timeout: time.Second * 30,
+        Transport: &http.Transport{
+            MaxIdleConns:        256,
+            MaxIdleConnsPerHost: 256,
+            MaxConnsPerHost:     256,
+        },
+    }
+
     for i := 0; i < threads; i++ {
-        go worker(jobs, &wg, &stats, i)
+        go worker(jobs, &wg, &stats, i, client)
     }
 
     for _, task := range tasks {
@@ -98,19 +109,19 @@ func shuffleTasks(tasks []Task) {
     })
 }
 
-func worker(jobs <-chan Task, wg *sync.WaitGroup, stats *Stats, workerID int) {
+func worker(jobs <-chan Task, wg *sync.WaitGroup, stats *Stats, workerID int, client *http.Client) {
     defer wg.Done()
-
-    client := &http.Client{
-        Timeout: time.Second * 30,
-    }
 
     fileName := fmt.Sprintf("./query-output/worker_%d_output.ndjson", workerID)
     file, err := os.Create(fileName)
     if err != nil {
         log.Fatalf("Failed to create file for worker %d: %v", workerID, err)
     }
-    defer file.Close()
+    writer := bufio.NewWriter(file)
+    defer func() {
+        writer.Flush()
+        file.Close()
+    }()
 
     for task := range jobs {
         requestURL := fmt.Sprintf("%s%s", serverURL, replacePlaceholder(task.Query.QueryCode, task.ID))
@@ -124,7 +135,6 @@ func worker(jobs <-chan Task, wg *sync.WaitGroup, stats *Stats, workerID int) {
             continue
         }
 
-        // Add the bearer token if it is provided
         if bearerToken != "" {
             req.Header.Set("Authorization", "Bearer "+bearerToken)
         }
@@ -137,16 +147,19 @@ func worker(jobs <-chan Task, wg *sync.WaitGroup, stats *Stats, workerID int) {
             stats.Unlock()
             continue
         }
-        defer resp.Body.Close()
 
         body, err := ioutil.ReadAll(resp.Body)
+        resp.Body.Close()
         if err != nil {
             log.Printf("Error reading response body: %v", err)
+            stats.Lock()
+            stats.Errors++
+            stats.Unlock()
             continue
         }
 
-        _, err = file.Write(body)
-        _, err = file.WriteString("\n") // Ensure NDJSON format
+        _, err = writer.Write(body)
+        _, err = writer.WriteString("\n")
         if err != nil {
             log.Printf("Error writing to file %s: %v", fileName, err)
         }
